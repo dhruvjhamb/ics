@@ -87,24 +87,24 @@ function makeCorsRequest() {
 
   var xhr = createCORSRequest('POST', url);
   if (!xhr) {
-      alert('CORS not supported');
-      return;
+    alert('CORS not supported');
+    return;
   }
 
   // Response handlers.
   xhr.onload = function() {
-      console.log("Got response");
-      botMessage = xhr.responseText;
+    console.log("Got response");
+    botMessage = xhr.responseText;
   };
 
   xhr.onerror = function() {
-      alert('Woops, there was an error making the request.');
+    alert('Woops, there was an error making the request.');
   };
 
   if (document.getElementById("chatbox").value != "") {
-      //pulls the value from the chatbox and sets it to lastUserMessage
-      lastUserMessage = document.getElementById("chatbox").value;
-   }
+    //pulls the value from the chatbox and sets it to lastUserMessage
+    lastUserMessage = document.getElementById("chatbox").value;
+  }
 
   xhr.setRequestHeader("Content-type", "text/plain");
   xhr.send(lastUserMessage);
@@ -114,19 +114,19 @@ function makeCorsRequest() {
 
 //It controls the overall input and output
 function display(xhr) {
-    //sets the chat box to be clear
-    document.getElementById("chatbox").value = "";
-    //adds the value of the chatbox to the array messages
-    messages.push(lastUserMessage);
-    //Speech(lastUserMessage);  //says what the user typed outloud
-    //sets the variable botMessage in response to lastUserMessage
-    //add the chatbot's name and message to the array messages
-    messages.push("<b>" + botName + ":</b> " + botMessage);
-    // says the message using the text to speech function written below
-    //Speech(botMessage);
-    //outputs the last few array elements of messages to html
-    for (var i = 1; i < 8; i++) {
-      if (messages[messages.length - i])
-        document.getElementById("chatlog" + i).innerHTML = messages[messages.length - i];
-    }
+  //sets the chat box to be clear
+  document.getElementById("chatbox").value = "";
+  //adds the value of the chatbox to the array messages
+  messages.push(lastUserMessage);
+  //Speech(lastUserMessage);  //says what the user typed outloud
+  //sets the variable botMessage in response to lastUserMessage
+  //add the chatbot's name and message to the array messages
+  messages.push("<b>" + botName + ":</b> " + botMessage);
+  // says the message using the text to speech function written below
+  //Speech(botMessage);
+  //outputs the last few array elements of messages to html
+  for (var i = 1; i < 8; i++) {
+    if (messages[messages.length - i])
+      document.getElementById("chatlog" + i).innerHTML = messages[messages.length - i];
+  }
 }
