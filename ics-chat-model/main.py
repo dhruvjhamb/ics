@@ -6,19 +6,13 @@ from keras.models import Sequential, load_model
 from keras.layers import Dense, Activation, Embedding, Dropout, TimeDistributed
 from keras.layers import LSTM
 from keras.optimizers import Adam
+from keras.preprocessing import sequence
 from keras.utils import to_categorical
 from keras.callbacks import ModelCheckpoint
 import numpy as np
 import argparse
 
 data_path = "/Users/dhruvjhamb/Projects/intelli-bot/ics-chat-model/data"
-
-parser = argparse.ArgumentParser()
-parser.add_argument('run_opt', type=int, default=1, help='An integer: 1 to train, 2 to test')
-parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
-args = parser.parse_args()
-if args.data_path:
-    data_path = args.data_path
 
 def read_words(filename):
     with tf.gfile.GFile(filename, "r") as f:
@@ -62,8 +56,6 @@ def load_data():
     #print(" ".join([reversed_dictionary[x] for x in train_data[100:110]]))
     return train_data[:5000], valid_data[:5000], test_data[:1000], vocabulary, reversed_dictionary
 
-train_data, valid_data, test_data, vocabulary, reversed_dictionary = load_data()
-
 class KerasBatchGenerator(object):
 
     def __init__(self, data, num_steps, batch_size, vocabulary, skip_step=5):
@@ -94,43 +86,55 @@ class KerasBatchGenerator(object):
                 self.current_idx += self.skip_step
             yield x, y
 
-num_steps = 30
-batch_size = 20
-train_data_generator = KerasBatchGenerator(train_data, num_steps, batch_size, vocabulary,
-                                           skip_step=num_steps)
-valid_data_generator = KerasBatchGenerator(valid_data, num_steps, batch_size, vocabulary,
-                                           skip_step=num_steps)
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_string', type=str, help='The input message')
+    #parser.add_argument('run_opt', type=int, nargs='?', const=1, help='An integer: 0 to train, 1 to test')
+    #parser.add_argument('--data_path', type=str, default=data_path, help='The full path of the training data')
+    args = parser.parse_args()
+    #if args.data_path:
+        #data_path = args.data_path
 
-hidden_size = 500
-use_dropout=True
-model = Sequential()
-model.add(Embedding(vocabulary, hidden_size, input_length=num_steps))
-model.add(LSTM(hidden_size, return_sequences=True))
-model.add(LSTM(hidden_size, return_sequences=True))
-if use_dropout:
-    model.add(Dropout(0.5))
-model.add(TimeDistributed(Dense(vocabulary)))
-model.add(Activation('softmax'))
+    train_data, valid_data, test_data, vocabulary, reversed_dictionary = load_data()
 
-optimizer = Adam()
-model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
+    num_steps = 30
+    batch_size = 20
+    train_data_generator = KerasBatchGenerator(train_data, num_steps, batch_size, vocabulary,
+                                               skip_step=num_steps)
+    valid_data_generator = KerasBatchGenerator(valid_data, num_steps, batch_size, vocabulary,
+                                               skip_step=num_steps)
 
-print(model.summary())
-checkpointer = ModelCheckpoint(filepath=data_path + '/model-{epoch:02d}.hdf5', verbose=1)
-num_epochs = 50
-if args.run_opt == 1:
-    model.fit_generator(train_data_generator.generate(), len(train_data)//(batch_size*num_steps), num_epochs,
-                        validation_data=valid_data_generator.generate(),
-                        validation_steps=len(valid_data)//(batch_size*num_steps), callbacks=[checkpointer])
-    # model.fit_generator(train_data_generator.generate(), 2000, num_epochs,
-    #                     validation_data=valid_data_generator.generate(),
-    #                     validation_steps=10)
-    model.save(data_path + "final_model.hdf5")
-elif args.run_opt == 2:
+    hidden_size = 500
+    use_dropout=True
+    model = Sequential()
+    model.add(Embedding(vocabulary, hidden_size, input_length=num_steps))
+    model.add(LSTM(hidden_size, return_sequences=True))
+    model.add(LSTM(hidden_size, return_sequences=True))
+    if use_dropout:
+        model.add(Dropout(0.5))
+    model.add(TimeDistributed(Dense(vocabulary)))
+    model.add(Activation('softmax'))
+
+    optimizer = Adam()
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
+
+    print(model.summary())
+    checkpointer = ModelCheckpoint(filepath=data_path + '/model-{epoch:02d}.hdf5', verbose=1)
+    num_epochs = 50
+    '''if args.run_opt == 0:
+        model.fit_generator(train_data_generator.generate(), len(train_data)//(batch_size*num_steps), num_epochs,
+                            validation_data=valid_data_generator.generate(),
+                            validation_steps=len(valid_data)//(batch_size*num_steps), callbacks=[checkpointer])
+        # model.fit_generator(train_data_generator.generate(), 2000, num_epochs,
+        #                     validation_data=valid_data_generator.generate(),
+        #                     validation_steps=10)
+        model.save(data_path + "final_model.hdf5")'''
+    #elif args.run_opt == 1:
     model = load_model(data_path + "/model-" + str(num_epochs) + ".hdf5")
     dummy_iters = 40
     example_training_generator = KerasBatchGenerator(train_data, num_steps, 1, vocabulary,
-                                                     skip_step=1)
+                                                         skip_step=1)
+    '''
     print("Training data:")
     for i in range(dummy_iters):
         dummy = next(example_training_generator.generate())
@@ -149,6 +153,9 @@ elif args.run_opt == 2:
     dummy_iters = 40
     example_test_generator = KerasBatchGenerator(test_data, num_steps, 1, vocabulary,
                                                      skip_step=1)
+
+    '''
+    '''
     print("Test data:")
     for i in range(dummy_iters):
         dummy = next(example_test_generator.generate())
@@ -162,4 +169,18 @@ elif args.run_opt == 2:
         true_print_out += reversed_dictionary[test_data[num_steps + dummy_iters + i]] + " "
         pred_print_out += reversed_dictionary[predict_word] + " "
     print(true_print_out)
-    print(pred_print_out)
+    print(pred_print_out)'''
+    input_raw = args.input_string.split(' ')
+    word_to_id = build_vocab(os.path.join(data_path, "ptb.train.txt"))
+    input_data = [[word_to_id[word] if word in word_to_id else vocabulary + 1 for word in input_raw]]
+    #sequence.pad_sequences(input_data, maxlen=30, dtype='int32', padding='post', truncating='post')
+    input_data_generator = KerasBatchGenerator(input_data, num_steps, 1, vocabulary,
+                                               skip_step=1)
+    data = next(input_data_generator.generate())
+    prediction = model.predict(data[0])
+    print(np.argmax(prediction[:, num_steps - 1, :]))
+    predict_word = np.argmax(prediction[:, num_steps - 1, :])
+    print(reversed_dictionary[predict_word])
+
+if __name__== "__main__":
+    main()
